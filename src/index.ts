@@ -68,7 +68,7 @@ export const download = ({
   name,
 }: {
   token: string;
-  bucket?: string;
+  bucket: string;
   name: string;
 }) => {
   const url = `https://storage.googleapis.com/storage/v1/b/${bucket}/o/${name}?alt=media&no=${Date.now()}`;
@@ -92,7 +92,7 @@ export const upload = ({
   metadata,
 }: {
   token: string;
-  bucket?: string;
+  bucket: string;
   name: string;
   file: Blob;
   published?: boolean;
@@ -127,7 +127,7 @@ export const del = ({
   name,
 }: {
   token: string;
-  bucket?: string;
+  bucket: string;
   name: string;
 }) => {
   const url = `https://storage.googleapis.com/storage/v1/b/${bucket}/o/${name}`;
@@ -171,12 +171,12 @@ export const createStorage = ({
 }) => {
   const token = createToken({ clientEmail, privateKey });
   return {
-    info: ({ bucket, name }: Exclude<Parameters<typeof info>[0], "token">) =>
+    info: ({ bucket, name }: Omit<Parameters<typeof info>[0], "token">) =>
       info({ token, bucket, name }),
     download: ({
       bucket,
       name,
-    }: Exclude<Parameters<typeof download>[0], "token">) =>
+    }: Omit<Parameters<typeof download>[0], "token">) =>
       download({ token, bucket, name }),
     upload: ({
       bucket,
@@ -184,11 +184,11 @@ export const createStorage = ({
       file,
       published,
       metadata,
-    }: Exclude<Parameters<typeof upload>[0], "token">) =>
+    }: Omit<Parameters<typeof upload>[0], "token">) =>
       upload({ token, bucket, name, file, published, metadata }),
-    del: ({ bucket, name }: Exclude<Parameters<typeof del>[0], "token">) =>
+    del: ({ bucket, name }: Omit<Parameters<typeof del>[0], "token">) =>
       del({ token, bucket, name }),
-    list: ({ bucket }: Exclude<Parameters<typeof list>[0], "token">) =>
+    list: ({ bucket }: Omit<Parameters<typeof list>[0], "token">) =>
       list({ token, bucket }),
   };
 };

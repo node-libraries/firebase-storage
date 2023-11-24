@@ -1,6 +1,6 @@
 {
   "name": "firebase-storage",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "main": "./dist/cjs/index.js",
   "types": "./dist/cjs/index.d.ts",
   "exports": {
@@ -9,6 +9,7 @@
   },
   "author": "SoraKumo <info@croud.jp>",
   "license": "MIT",
+  "description": "Easily operate Google cloud storage with a private key",
   "scripts": {
     "build": "rimraf dist && tsc && tsc -p ./tsconfig.esm.json && cpy esm dist",
     "watch": "tsc -b -w",

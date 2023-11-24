@@ -1,5 +1,7 @@
 # firebase-storage
 
+Easily operate Google cloud storage with a private key.
+
 ## Sample
 
 ```ts
