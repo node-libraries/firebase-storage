@@ -1,4 +1,4 @@
-import jwt from "jsonwebtoken";
+import { SignJWT, importPKCS8 } from "jose";
 
 export interface StorageObject {
   kind: string;
@@ -28,17 +28,16 @@ export const createToken = ({
   clientEmail: string;
   privateKey: string;
 }) =>
-  jwt.sign(
-    {
+  importPKCS8(privateKey, "RS256").then((key) =>
+    new SignJWT({
       iss: clientEmail,
       sub: clientEmail,
       scope: "https://www.googleapis.com/auth/cloud-platform",
+      iat: Math.floor(Date.now() / 1000) - 30,
       exp: Math.floor(Date.now() / 1000) + 3600,
-    },
-    privateKey,
-    {
-      algorithm: "RS256",
-    }
+    })
+      .setProtectedHeader({ alg: "RS256", typ: "JWT" })
+      .sign(key)
   );
 
 export const info = ({
@@ -173,15 +172,23 @@ export const getStorage = ({
 }) => {
   const token = createToken({ clientEmail, privateKey });
   return {
-    info: (params: Omit<Parameters<typeof info>[0], "token">) =>
-      info({ ...params, token, bucket: params.bucket ?? _bucket }),
-    download: (params: Omit<Parameters<typeof download>[0], "token">) =>
-      download({ ...params, token, bucket: params.bucket ?? _bucket }),
-    upload: (params: Omit<Parameters<typeof upload>[0], "token">) =>
-      upload({ ...params, token, bucket: params.bucket ?? _bucket }),
-    del: (params: Omit<Parameters<typeof del>[0], "token">) =>
-      del({ ...params, token, bucket: params.bucket ?? _bucket }),
-    list: (params: Omit<Parameters<typeof list>[0], "token">) =>
-      list({ ...params, token, bucket: params.bucket ?? _bucket }),
+    info: async (params: Omit<Parameters<typeof info>[0], "token">) =>
+      info({ ...params, token: await token, bucket: params.bucket ?? _bucket }),
+    download: async (params: Omit<Parameters<typeof download>[0], "token">) =>
+      download({
+        ...params,
+        token: await token,
+        bucket: params.bucket ?? _bucket,
+      }),
+    upload: async (params: Omit<Parameters<typeof upload>[0], "token">) =>
+      upload({
+        ...params,
+        token: await token,
+        bucket: params.bucket ?? _bucket,
+      }),
+    del: async (params: Omit<Parameters<typeof del>[0], "token">) =>
+      del({ ...params, token: await token, bucket: params.bucket ?? _bucket }),
+    list: async (params: Omit<Parameters<typeof list>[0], "token">) =>
+      list({ ...params, token: await token, bucket: params.bucket ?? _bucket }),
   };
 };
