@@ -47,7 +47,7 @@ export const info = ({
   name,
 }: {
   token: string;
-  bucket: string;
+  bucket?: string;
   name: string;
 }): Promise<StorageObject> => {
   const url = `https://storage.googleapis.com/storage/v1/b/${bucket}/o/${name}`;
@@ -68,7 +68,7 @@ export const download = ({
   name,
 }: {
   token: string;
-  bucket: string;
+  bucket?: string;
   name: string;
 }) => {
   const url = `https://storage.googleapis.com/storage/v1/b/${bucket}/o/${name}?alt=media&no=${Date.now()}`;
@@ -92,7 +92,7 @@ export const upload = ({
   metadata,
 }: {
   token: string;
-  bucket: string;
+  bucket?: string;
   name: string;
   file: Blob;
   published?: boolean;
@@ -127,7 +127,7 @@ export const del = ({
   name,
 }: {
   token: string;
-  bucket: string;
+  bucket?: string;
   name: string;
 }) => {
   const url = `https://storage.googleapis.com/storage/v1/b/${bucket}/o/${name}`;
@@ -162,33 +162,26 @@ export const list = ({
     .then((res) => res.items);
 };
 
-export const createStorage = ({
+export const getStorage = ({
   clientEmail,
   privateKey,
+  bucket: _bucket,
 }: {
   clientEmail: string;
   privateKey: string;
+  bucket?: string;
 }) => {
   const token = createToken({ clientEmail, privateKey });
   return {
-    info: ({ bucket, name }: Omit<Parameters<typeof info>[0], "token">) =>
-      info({ token, bucket, name }),
-    download: ({
-      bucket,
-      name,
-    }: Omit<Parameters<typeof download>[0], "token">) =>
-      download({ token, bucket, name }),
-    upload: ({
-      bucket,
-      name,
-      file,
-      published,
-      metadata,
-    }: Omit<Parameters<typeof upload>[0], "token">) =>
-      upload({ token, bucket, name, file, published, metadata }),
-    del: ({ bucket, name }: Omit<Parameters<typeof del>[0], "token">) =>
-      del({ token, bucket, name }),
-    list: ({ bucket }: Omit<Parameters<typeof list>[0], "token">) =>
-      list({ token, bucket }),
+    info: (params: Omit<Parameters<typeof info>[0], "token">) =>
+      info({ ...params, token, bucket: params.bucket ?? _bucket }),
+    download: (params: Omit<Parameters<typeof download>[0], "token">) =>
+      download({ ...params, token, bucket: params.bucket ?? _bucket }),
+    upload: (params: Omit<Parameters<typeof upload>[0], "token">) =>
+      upload({ ...params, token, bucket: params.bucket ?? _bucket }),
+    del: (params: Omit<Parameters<typeof del>[0], "token">) =>
+      del({ ...params, token, bucket: params.bucket ?? _bucket }),
+    list: (params: Omit<Parameters<typeof list>[0], "token">) =>
+      list({ ...params, token, bucket: params.bucket ?? _bucket }),
   };
 };
