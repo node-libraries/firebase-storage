@@ -12,7 +12,7 @@ const clientEmail =
   "firebase-adminsdk-XXXXX0XXXXX@XXXXXXX.iam.gserviceaccount.com";
 
 async function main() {
-  const bucket = "md-blog-test.appspot.com";
+  const bucket = "XXXXXXXX.appspot.com";
   const storage = getStorage({ privateKey, clientEmail, bucket });
   const file = new Blob(["Test value"], {
     type: "text/plain",
