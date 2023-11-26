@@ -46,7 +46,7 @@ export const info = ({
   name,
 }: {
   token: string;
-  bucket?: string;
+  bucket: string;
   name: string;
 }): Promise<StorageObject> => {
   const url = `https://storage.googleapis.com/storage/v1/b/${bucket}/o/${name}`;
@@ -67,7 +67,7 @@ export const download = ({
   name,
 }: {
   token: string;
-  bucket?: string;
+  bucket: string;
   name: string;
 }) => {
   const url = `https://storage.googleapis.com/storage/v1/b/${bucket}/o/${name}?alt=media&no=${Date.now()}`;
@@ -91,7 +91,7 @@ export const upload = ({
   metadata,
 }: {
   token: string;
-  bucket?: string;
+  bucket: string;
   name: string;
   file: Blob;
   published?: boolean;
@@ -126,7 +126,7 @@ export const del = ({
   name,
 }: {
   token: string;
-  bucket?: string;
+  bucket: string;
   name: string;
 }) => {
   const url = `https://storage.googleapis.com/storage/v1/b/${bucket}/o/${name}`;
@@ -146,7 +146,7 @@ export const list = ({
   bucket,
 }: {
   token: string;
-  bucket?: string;
+  bucket: string;
 }): Promise<StorageObject[]> => {
   const url = `https://storage.googleapis.com/storage/v1/b/${bucket}/o`;
   return fetch(url, {
@@ -161,6 +161,11 @@ export const list = ({
     .then((res) => res.items);
 };
 
+type ParamType<
+  T extends (...args: never[]) => unknown,
+  P = Parameters<T>[0]
+> = Omit<P, "token" | "bucket"> & { bucket?: string };
+
 export const getStorage = ({
   clientEmail,
   privateKey,
@@ -170,25 +175,51 @@ export const getStorage = ({
   privateKey: string;
   bucket?: string;
 }) => {
-  const token = createToken({ clientEmail, privateKey });
+  const property = {
+    token: "",
+    expire: 0,
+  };
+  const getToken = async () => {
+    if (property.expire > Date.now() / 1000 + 300) return property.token;
+    property.expire = Math.floor(Date.now() / 1000) + 3600;
+    property.token = await createToken({ clientEmail, privateKey });
+    return property.token;
+  };
+  const getBucket = (bucket?: string) => {
+    const result = bucket ?? _bucket;
+    if (!result) throw new Error("bucket is not defined");
+    return result;
+  };
   return {
-    info: async (params: Omit<Parameters<typeof info>[0], "token">) =>
-      info({ ...params, token: await token, bucket: params.bucket ?? _bucket }),
-    download: async (params: Omit<Parameters<typeof download>[0], "token">) =>
+    info: async (params: ParamType<typeof info>) =>
+      info({
+        ...params,
+        token: await getToken(),
+        bucket: getBucket(params.bucket),
+      }),
+    download: async (params: ParamType<typeof download>) =>
       download({
         ...params,
-        token: await token,
-        bucket: params.bucket ?? _bucket,
+        token: await getToken(),
+        bucket: getBucket(params.bucket),
       }),
-    upload: async (params: Omit<Parameters<typeof upload>[0], "token">) =>
+    upload: async (params: ParamType<typeof upload>) =>
       upload({
         ...params,
-        token: await token,
-        bucket: params.bucket ?? _bucket,
+        token: await getToken(),
+        bucket: getBucket(params.bucket),
       }),
-    del: async (params: Omit<Parameters<typeof del>[0], "token">) =>
-      del({ ...params, token: await token, bucket: params.bucket ?? _bucket }),
-    list: async (params: Omit<Parameters<typeof list>[0], "token">) =>
-      list({ ...params, token: await token, bucket: params.bucket ?? _bucket }),
+    del: async (params: ParamType<typeof del>) =>
+      del({
+        ...params,
+        token: await getToken(),
+        bucket: getBucket(params.bucket),
+      }),
+    list: async (params: ParamType<typeof list>) =>
+      list({
+        ...params,
+        token: await getToken(),
+        bucket: getBucket(params.bucket),
+      }),
   };
 };

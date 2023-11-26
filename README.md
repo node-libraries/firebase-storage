@@ -1,18 +1,20 @@
 # firebase-storage
 
 Easily operate Google cloud storage with a private key.
+Works with `Edge runtime`.
 
 ## Sample
 
 ```ts
 import { getStorage } from "firebase-storage";
 
-const privateKey = `-----BEGIN PRIVATE KEY-----\nXXXXXXXXXXXXXXXX-----END PRIVATE KEY-----\n`;
+const privateKey =
+  "-----BEGIN PRIVATE KEY-----\nXXXXXXXXXXXXXXXX-----END PRIVATE KEY-----\n";
 const clientEmail =
   "firebase-adminsdk-XXXXX0XXXXX@XXXXXXX.iam.gserviceaccount.com";
+const bucket = "XXXXXXXX.appspot.com"; // Can also be specified in each function
 
 async function main() {
-  const bucket = "XXXXXXXX.appspot.com";
   const storage = getStorage({ privateKey, clientEmail, bucket });
   const file = new Blob(["Test value"], {
     type: "text/plain",
