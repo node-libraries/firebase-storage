@@ -13,9 +13,10 @@ const privateKey =
 const clientEmail =
   "firebase-adminsdk-XXXXX0XXXXX@XXXXXXX.iam.gserviceaccount.com";
 const bucket = "XXXXXXXX.appspot.com"; // Can also be specified in each function
+const parallels = 5; //default 1000
 
 async function main() {
-  const storage = getStorage({ privateKey, clientEmail, bucket });
+  const storage = getStorage({ privateKey, clientEmail, bucket, parallels });
   const file = new Blob(["Test value"], {
     type: "text/plain",
   });

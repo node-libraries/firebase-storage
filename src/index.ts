@@ -1,3 +1,4 @@
+import { semaphore } from "@node-libraries/semaphore";
 import { SignJWT, importPKCS8 } from "jose";
 
 export interface StorageObject {
@@ -49,7 +50,9 @@ export const info = ({
   bucket: string;
   name: string;
 }): Promise<StorageObject> => {
-  const url = `https://storage.googleapis.com/storage/v1/b/${bucket}/o/${name}`;
+  const url = `https://storage.googleapis.com/storage/v1/b/${encodeURIComponent(
+    bucket
+  )}/o/${encodeURIComponent(name)}`;
   return fetch(url, {
     method: "GET",
     headers: {
@@ -70,7 +73,9 @@ export const download = ({
   bucket: string;
   name: string;
 }) => {
-  const url = `https://storage.googleapis.com/storage/v1/b/${bucket}/o/${name}?alt=media&no=${Date.now()}`;
+  const url = `https://storage.googleapis.com/storage/v1/b/${encodeURIComponent(
+    bucket
+  )}/o/${encodeURIComponent(name)}?alt=media&no=${Date.now()}`;
   return fetch(url, {
     method: "GET",
     headers: {
@@ -99,7 +104,9 @@ export const upload = ({
 }) => {
   const id = encodeURI(name);
 
-  const url = `https://storage.googleapis.com/upload/storage/v1/b/${bucket}/o?name=${id}&uploadType=multipart${
+  const url = `https://storage.googleapis.com/upload/storage/v1/b/${encodeURIComponent(
+    bucket
+  )}/o?name=${id}&uploadType=multipart${
     published ? "&predefinedAcl=publicRead" : ""
   }`;
   const body = new FormData();
@@ -129,7 +136,9 @@ export const del = ({
   bucket: string;
   name: string;
 }) => {
-  const url = `https://storage.googleapis.com/storage/v1/b/${bucket}/o/${name}`;
+  const url = `https://storage.googleapis.com/storage/v1/b/${encodeURIComponent(
+    bucket
+  )}/o/${encodeURIComponent(name)}`;
   return fetch(url, {
     method: "DELETE",
     headers: {
@@ -148,7 +157,9 @@ export const list = ({
   token: string;
   bucket: string;
 }): Promise<StorageObject[]> => {
-  const url = `https://storage.googleapis.com/storage/v1/b/${bucket}/o`;
+  const url = `https://storage.googleapis.com/storage/v1/b/${encodeURIComponent(
+    bucket
+  )}/o`;
   return fetch(url, {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -170,10 +181,12 @@ export const getStorage = ({
   clientEmail,
   privateKey,
   bucket: _bucket,
+  parallels = 1000,
 }: {
   clientEmail: string;
   privateKey: string;
   bucket?: string;
+  parallels?: number;
 }) => {
   const property = {
     token: "",
@@ -190,36 +203,47 @@ export const getStorage = ({
     if (!result) throw new Error("bucket is not defined");
     return result;
   };
+  const s = semaphore(parallels);
   return {
-    info: async (params: ParamType<typeof info>) =>
-      info({
+    info: async (params: ParamType<typeof info>) => {
+      await s.acquire();
+      return info({
         ...params,
         token: await getToken(),
         bucket: getBucket(params.bucket),
-      }),
-    download: async (params: ParamType<typeof download>) =>
-      download({
+      }).finally(() => s.release());
+    },
+    download: async (params: ParamType<typeof download>) => {
+      await s.acquire();
+      return download({
         ...params,
         token: await getToken(),
         bucket: getBucket(params.bucket),
-      }),
-    upload: async (params: ParamType<typeof upload>) =>
-      upload({
+      }).finally(() => s.release());
+    },
+    upload: async (params: ParamType<typeof upload>) => {
+      await s.acquire();
+      return upload({
         ...params,
         token: await getToken(),
         bucket: getBucket(params.bucket),
-      }),
-    del: async (params: ParamType<typeof del>) =>
-      del({
+      }).finally(() => s.release());
+    },
+    del: async (params: ParamType<typeof del>) => {
+      await s.acquire();
+      return del({
         ...params,
         token: await getToken(),
         bucket: getBucket(params.bucket),
-      }),
-    list: async (params: ParamType<typeof list>) =>
-      list({
+      }).finally(() => s.release());
+    },
+    list: async (params: ParamType<typeof list>) => {
+      await s.acquire();
+      return list({
         ...params,
         token: await getToken(),
         bucket: getBucket(params.bucket),
-      }),
+      }).finally(() => s.release());
+    },
   };
 };
