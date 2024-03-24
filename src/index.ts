@@ -1,6 +1,102 @@
 import { semaphore } from "@node-libraries/semaphore";
 import { SignJWT, importPKCS8 } from "jose";
 
+export interface BucketObject {
+  kind: string;
+  selfLink: string;
+  id: string;
+  name: string;
+  projectNumber: string;
+  metageneration: string;
+  location: string;
+  storageClass: string;
+  etag: string;
+  defaultEventBasedHold: boolean;
+  timeCreated: string;
+  updated: string;
+  encryption: {
+    defaultKmsKeyName: string;
+  };
+  acl: unknown[];
+  defaultObjectAcl: unknown[];
+  website: {
+    mainPageSuffix: string;
+    notFoundPage: string;
+  };
+  owner: {
+    entity: string;
+    entityId: string;
+  };
+  logging: {
+    logBucket: string;
+    logObjectPrefix: string;
+  };
+  cors: {
+    origin: string[];
+    method: string[];
+    responseHeader: string[];
+    maxAgeSeconds: number;
+  }[];
+  versioning: {
+    enabled: boolean;
+  };
+  lifecycle: {
+    rule: {
+      action: {
+        storageClass: string;
+        type: string;
+      };
+      condition: {
+        age: number;
+        createdBefore: string;
+        isLive: boolean;
+        numNewerVersions: number;
+        matchesStorageClass: string[];
+        daysSinceCustomTime: number;
+        customTimeBefore: string;
+        daysSinceNoncurrentTime: number;
+        noncurrentTimeBefore: string;
+        matchesPrefix: string[];
+        matchesSuffix: string[];
+      };
+    }[];
+  };
+  autoclass: {
+    enabled: boolean;
+    toggleTime: string;
+    terminalStorageClass: string;
+    terminalStorageClassUpdateTime: string;
+  };
+  labels: { [key: string]: string };
+  retentionPolicy: {
+    retentionPeriod: string;
+    effectiveTime: string;
+    isLocked: boolean;
+  };
+  objectRetention: {
+    mode: string;
+  };
+  billing: {
+    requesterPays: boolean;
+  };
+  iamConfiguration: {
+    publicAccessPrevention: string;
+    uniformBucketLevelAccess: {
+      enabled: boolean;
+      lockedTime: string;
+    };
+  };
+  locationType: string;
+  customPlacementConfig: {
+    dataLocations: string[];
+  };
+  softDeletePolicy: {
+    retentionDurationSeconds: string;
+    effectiveTime: string;
+  };
+  rpo: string;
+}
+
 export interface StorageObject {
   kind: string;
   id: string;
@@ -172,6 +268,63 @@ export const list = ({
     .then((res) => res.items);
 };
 
+export const infoBucket = ({
+  token,
+  bucket,
+}: {
+  token: string;
+  bucket: string;
+}): Promise<BucketObject> => {
+  const url = `https://storage.googleapis.com/storage/v1/b/${encodeURIComponent(
+    bucket
+  )}`;
+  return fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+    .then((res) => {
+      if (res.status !== 200) throw new Error(res.statusText);
+      return res.json();
+    })
+    .then((res) => res);
+};
+
+type TreePartial<T> = {
+  [P in keyof T]?: T[P] extends (infer U)[]
+    ? TreePartial<U>[]
+    : T[P] extends object
+    ? TreePartial<T[P]>
+    : T[P];
+};
+
+export const updateBucket = ({
+  token,
+  bucket,
+  body,
+}: {
+  token: string;
+  bucket: string;
+  body: TreePartial<BucketObject>;
+}): Promise<StorageObject[]> => {
+  const url = `https://storage.googleapis.com/storage/v1/b/${encodeURIComponent(
+    bucket
+  )}`;
+  return fetch(url, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+  })
+    .then((res) => {
+      if (res.status !== 200) throw new Error(res.statusText);
+      return res.json();
+    })
+    .then((res) => res);
+};
+
 type ParamType<
   T extends (...args: never[]) => unknown,
   P = Parameters<T>[0]
@@ -240,6 +393,22 @@ export const getStorage = ({
     list: async (params: ParamType<typeof list>) => {
       await s.acquire();
       return list({
+        ...params,
+        token: await getToken(),
+        bucket: getBucket(params.bucket),
+      }).finally(() => s.release());
+    },
+    infoBucket: async (params: ParamType<typeof infoBucket>) => {
+      await s.acquire();
+      return infoBucket({
+        ...params,
+        token: await getToken(),
+        bucket: getBucket(params.bucket),
+      }).finally(() => s.release());
+    },
+    updateBucket: async (params: ParamType<typeof updateBucket>) => {
+      await s.acquire();
+      return updateBucket({
         ...params,
         token: await getToken(),
         bucket: getBucket(params.bucket),

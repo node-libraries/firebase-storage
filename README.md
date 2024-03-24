@@ -41,6 +41,8 @@ async function main() {
       console.log(new TextDecoder().decode(v));
     });
   await storage.del({ name: "test" }).then(console.log);
+  await storage.infoBucket({ bucket }).then(console.log);
+  await storage.updateBucket({ bucket, body: {} }).then(console.log);
 }
 
 main().catch(console.error);
