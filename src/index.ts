@@ -306,7 +306,7 @@ export const updateBucket = ({
   token: string;
   bucket: string;
   body: TreePartial<BucketObject>;
-}): Promise<StorageObject[]> => {
+}): Promise<BucketObject[]> => {
   const url = `https://storage.googleapis.com/storage/v1/b/${encodeURIComponent(
     bucket
   )}`;
